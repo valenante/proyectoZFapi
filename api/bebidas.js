@@ -1,17 +1,63 @@
 const express = require('express');
 const router = express.Router();
 const Bebida = require('../models/Bebidas'); // Ajusta la ruta según tu estructura de archivos
+const multer = require('multer');
+const path = require('path');
 
-// Crear una nueva bebida
-router.post('/', async (req, res) => {
+// Configuración de multer
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        cb(null, path.join(__dirname, '../public/images'));
+    },
+    filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+    }
+});
+
+const fileFilter = (req, file, cb) => {
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/webp'];
+    if (allowedTypes.includes(file.mimetype)) {
+        cb(null, true); // Archivo permitido
+    } else {
+        cb(new Error('Solo se permiten imágenes en formato JPEG y PNG'), false);
+    }
+};
+
+const upload = multer({
+    storage: storage,
+    fileFilter: fileFilter,
+    limits: { fileSize: 5 * 1024 * 1024 }
+});
+
+
+router.post('/', upload.single('imagen'), async (req, res) => {
     try {
-        const nuevaBebida = new Bebida(req.body);
+        const { nombre, descripcion, categoria, precio } = req.body;
+        console.log(req.body);  // Esto te permitirá ver si la imagen está llegando correctamente
+
+        // Extrae el nombre del archivo subido
+        const imagen = req.file ? req.file.filename : null;
+
+        if (!nombre || !descripcion || !categoria || !precio || !imagen) {
+            return res.status(400).json({ error: 'Todos los campos son obligatorios' });
+        }
+
+        const nuevaBebida = new Bebida({
+            nombre,
+            descripcion,
+            categoria,
+            precio,
+            imagen, // Guarda el nombre del archivo o su ruta
+        });
+
         await nuevaBebida.save();
         res.status(201).json(nuevaBebida);
     } catch (error) {
         res.status(400).json({ error: error.message });
     }
 });
+
 
 // Obtener todas las bebidas o filtrar por parámetros (como categoria)
 router.get('/', async (req, res) => {
@@ -44,7 +90,6 @@ router.get('/categorias/bebidas', async (req, res) => {
             return res.status(404).json({ error: 'No se encontraron categorías para bebidas' });
         }
 
-        console.log(categorias);
         res.status(200).json(categorias);
     } catch (error) {
         res.status(500).json({ error: error.message });

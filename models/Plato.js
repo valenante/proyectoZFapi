@@ -25,6 +25,7 @@ const platoSchema = new mongoose.Schema({
     descripcion: { type: String, required: true },
     precios: { type: precioSchema, required: true },
     ingredientes: { type: [String], required: true },
+    ingredientesEliminados: { type: [String], default: [] },
     opcionesPersonalizables: [opcionPersonalizableSchema],
     puntosDeCoccion: [{ 
         type: String, // Este solo tiene el nombre del punto de cocción, ej. "Poco hecho", "Bien hecho"
@@ -39,8 +40,13 @@ const platoSchema = new mongoose.Schema({
     },
     estado: {
         type: String,
-        enum: ['activo', 'inactivo'],
-        default: 'activo'
+        enum: ['habilitado', 'deshabilitado'],
+        default: 'habilitado'
+    },
+    tipo: {
+        type: String,
+        enum: ['plato', 'tapa', 'racion', 'surtido'],
+        required: true
     },
     createdAt: { type: Date, default: Date.now },
 

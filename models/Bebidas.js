@@ -8,7 +8,7 @@ const bebidaSchema = new Schema({
   },
   categoria: {
     type: String,
-    enum: ['copa', 'vino blanco', 'vino tinto', 'refresco', 'cerveza', 'cocktails'],  // Puedes agregar más categorías si las necesitas
+    enum: ['copa', 'vino blanco', 'vino tinto', 'refresco', 'cerveza', 'cocktails', 'ginebra', 'vodka', 'ron', 'whisky'],  // Puedes agregar más categorías si las necesitas
     required: true
   },
   descripcion: {
@@ -41,15 +41,19 @@ const bebidaSchema = new Schema({
       return this.categoria === 'vino blanco' || this.categoria === 'vino tinto';
     }
   },
+  estado: {
+    type: String,
+    enum: ['habilitado', 'deshabilitado'],
+    default: 'activo'
+  },
   precio: {
     type: Number,
     required: true
   },
   cantidad: {
-    type: Number,
-    required: true
+    type: Number
   },
-  imagen: { type: String, required: true },
+  img: { type: String, required: true },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Bebida', bebidaSchema);

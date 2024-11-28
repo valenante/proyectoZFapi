@@ -21,10 +21,6 @@ const platoPedidoSchema = new mongoose.Schema({
         type: String,
         required: false
     },
-    ingredientes: {
-        type: [String],
-        default: []
-    },
     precios: {
         type: [Number],
         required: true
@@ -38,10 +34,17 @@ const platoPedidoSchema = new mongoose.Schema({
         type: Schema.Types.Mixed,  // Esto permite que el campo acepte tanto un string como un objeto
         required: false
     },
-    opcionesPersonalizables: {
+    ingredientesEliminados: {
+        type: [String],
+        default: []
+    },
+    opcionesPersonalizadas: {
         type: Map,
         of: String,
         default: {}
+    },
+    tipo: {
+        type: String,
     },
     puntosDeCoccion: {
         type: [String],
@@ -53,13 +56,63 @@ const platoPedidoSchema = new mongoose.Schema({
     }
 });
 
-// Esquema principal de pedido (sin las bebidas)
+// Esquema para las bebidas dentro de un pedido
+const bebidaPedidoSchema = new mongoose.Schema({
+    bebidaId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Bebida', // Asegúrate de que 'Bebida' esté definido correctamente en el modelo de bebidas
+        required: true
+    },
+    cantidad: {
+        type: Number,
+        required: true,
+        default: 1
+    },
+    nombre: {
+        type: String,
+        required: true
+    },
+    categoria: {
+        type: String,
+        required: true
+    },
+    precio: {
+        type: Number,
+        required: true
+    },
+    conHielo: {
+        type: Boolean,
+        default: false
+    },
+    conLimon: {
+        type: Boolean,
+        default: false
+    },
+    acompañante: {
+        type: String,
+    },
+    tipoDeVino: {
+        type: String,
+        enum: ['blanco', 'tinto'],
+        required: function() {
+            return this.categoria === 'vino blanco' || this.categoria === 'vino tinto';
+        }
+    },
+    opcionesPersonalizadas: {
+        type: Map,
+        of: String,
+        default: {}
+    }
+});
+
+// Esquema principal de pedido
 const pedidoSchema = new mongoose.Schema({
     mesa: {
         type: Number,
         required: true
     },
     platos: [platoPedidoSchema],  // Lista de platos en el pedido
+    bebidas: [bebidaPedidoSchema], // Lista de bebidas en el pedido
     total: {
         type: Number,
         required: true,
@@ -98,7 +151,11 @@ pedidoSchema.methods.calcularTotal = function() {
 
         return acc + plato.cantidad * precioUnitario;
     }, 0);
+
+    // Agregar el total de las bebidas al total del pedido
+    this.total += this.bebidas.reduce((acc, bebida) => {
+        return acc + bebida.cantidad * bebida.precio;
+    }, 0);
 };
 
 module.exports = mongoose.model('Pedido', pedidoSchema);
-
