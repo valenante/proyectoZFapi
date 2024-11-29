@@ -43,6 +43,7 @@ const bebidaRoutes = require('./api/bebidas');
 const notificacionesRoutes = require('./api/notificaciones');
 const pedidoBebidasRoutes = require('./api/pedidoBebidas');
 const mesaEliminadaRoutes = require('./api/mesasEliminadas');
+const cerrarCajaRoutes = require('./routes/cerrarCaja');
 
 // Usar rutas
 app.use('/api/auth', authRoutes);
@@ -52,7 +53,8 @@ app.use('/api/mesas', mesaRoutes(io));
 app.use('/api/pedidoBebidas', pedidoBebidasRoutes(io));
 app.use('/api/bebidas', bebidaRoutes);
 app.use('/api/notificaciones', notificacionesRoutes);
-app.use('/api/mesasEliminadas', mesaEliminadaRoutes);
+app.use('/api/mesasEliminadas', mesaEliminadaRoutes(io));
+app.use('/api/caja', cerrarCajaRoutes);
 
 // Evento para manejar nuevos pedidos y emitirlos a los clientes
 io.on('connection', (socket) => {

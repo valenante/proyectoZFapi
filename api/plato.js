@@ -63,7 +63,7 @@ router.post('/', upload.single('imagen'), async (req, res) => {
             opcionesPersonalizables,  // Ya es un array
             puntosDeCoccion,  // Ya es un array
             especificaciones,  // Ya es un array
-            imagen: req.file ? `/uploads/${req.file.filename}` : null, // Si se sube una imagen, se guarda la ruta
+            imagen: req.file ? `/images/${req.file.filename}` : null, // Si se sube una imagen, se guarda la ruta
             categoria: req.body.categoria,
             estado: req.body.estado || 'activo', // Si no se pasa estado, por defecto es 'activo'
             tipo: req.body.tipo

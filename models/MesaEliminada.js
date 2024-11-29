@@ -13,9 +13,27 @@ const MesaEliminadaSchema = new mongoose.Schema({
         type: Array,
         required: true
     },
+    pedidosBebidasAsociados: {
+        type: Array,
+        required: true
+    },
     numero: {
         type: Number,
         required: true
+    },
+    total: {
+        type: Number,
+        default: 0,
+    },
+    metodoPago: {
+        efectivo: {
+            type: Number,
+            default: 0
+        },
+        tarjeta: {
+            type: Number,
+            default: 0
+        }
     }
 });
 

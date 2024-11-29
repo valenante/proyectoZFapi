@@ -7,7 +7,7 @@ const path = require('path');
 // Configuración de multer
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, path.join(__dirname, '../public/images'));
+        cb(null, path.join(__dirname, '../public/images'));  // Guardar en la carpeta 'images'
     },
     filename: (req, file, cb) => {
         const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -30,16 +30,15 @@ const upload = multer({
     limits: { fileSize: 5 * 1024 * 1024 }
 });
 
-
-router.post('/', upload.single('imagen'), async (req, res) => {
+router.post('/', upload.single('img'), async (req, res) => {
     try {
         const { nombre, descripcion, categoria, precio } = req.body;
         console.log(req.body);  // Esto te permitirá ver si la imagen está llegando correctamente
 
         // Extrae el nombre del archivo subido
-        const imagen = req.file ? req.file.filename : null;
+        const img = req.file ? 'images/' + req.file.filename : null;  // Guardar la ruta completa
 
-        if (!nombre || !descripcion || !categoria || !precio || !imagen) {
+        if (!nombre || !descripcion || !categoria || !precio || !img) {
             return res.status(400).json({ error: 'Todos los campos son obligatorios' });
         }
 
@@ -48,7 +47,7 @@ router.post('/', upload.single('imagen'), async (req, res) => {
             descripcion,
             categoria,
             precio,
-            imagen, // Guarda el nombre del archivo o su ruta
+            img, // Guarda la ruta relativa de la imagen
         });
 
         await nuevaBebida.save();

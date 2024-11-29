@@ -52,9 +52,15 @@ const bebidaPedidoSchema = new Schema({
 
 // Esquema principal de pedido para las bebidas
 const pedidoBebidasSchema = new Schema({
-    mesa: {
-        type: Number,
+    mesa: { 
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: 'Mesa',  // Relacionado con el modelo 'Mesa'
         required: true
+    },
+    mesaDia: {
+        type: Number, 
+        ref: 'Mesa',  // Relacionado con el modelo 'Mesa'
+        required: false
     },
     bebidas: [bebidaPedidoSchema], // Lista de bebidas en el pedido
     total: {

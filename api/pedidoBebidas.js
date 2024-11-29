@@ -2,28 +2,59 @@ const express = require('express');
 const router = express.Router();
 const PedidoBebida = require('../models/PedidoBebidas'); // Cambia la ruta según tu estructura
 const Bebida = require('../models/Bebidas'); // Cambia la ruta según tu estructura
+const Mesa = require('../models/Mesa'); // Cambia la ruta según tu estructura
+const BebidaEliminada = require('../models/BebidaEliminada'); // Cambia la ruta según tu estructura
 
 module.exports = (io) => {
     // Crear un nuevo pedido de bebida
-router.post('/', async (req, res) => {
-    try {
-        const nuevoPedidoBebida = new PedidoBebida(req.body);
+    router.post('/', async (req, res) => {
+        try {
+            // Asumimos que el ID de la mesa está en el cuerpo de la solicitud
+            const { mesa, ...pedidoData } = req.body;
 
-        // Guardar el pedido de bebida en la base de datos
-        await nuevoPedidoBebida.save();
+            // Buscar la mesa usando el ObjectId de la mesa
+            const mesaExistente = await Mesa.findById(mesa); // Buscamos por ObjectId (ID de la mesa)
 
-        // Emitir un evento de socket para notificar a los clientes conectados
-        io.emit('nuevoPedidoBebida', nuevoPedidoBebida);
+            if (!mesaExistente) {
+                return res.status(404).json({ error: 'Mesa no encontrada' });
+            }
 
-        res.status(201).json({
-            message: 'Pedido de bebida creado con éxito',
-            pedidoId: nuevoPedidoBebida._id, // Incluir el ID del pedido creado
-            pedido: nuevoPedidoBebida
-        });
-    } catch (error) {
-        res.status(400).json({ error: error.message });
-    }
-});
+            // Crear el nuevo pedido de bebida con el ObjectId de la mesa
+            const nuevoPedidoBebida = new PedidoBebida({
+                ...pedidoData, // Mantener los datos del pedido de bebida
+                mesa: mesaExistente._id, // Asignar el ObjectId de la mesa
+            });
+
+            // Guardar el nuevo pedido de bebida en la base de datos
+            await nuevoPedidoBebida.save();
+
+            // Agregar el ID del nuevo pedido al campo 'pedidoBebidas' de la mesa
+            if (!mesaExistente.pedidoBebidas) {
+                mesaExistente.pedidoBebidas = []; // Inicializar si no existe
+            }
+
+            mesaExistente.pedidoBebidas.push(nuevoPedidoBebida._id);
+
+            // **Sumar el total del nuevo pedido de bebida al total de la mesa**
+            mesaExistente.total += nuevoPedidoBebida.total; // Supone que 'total' es una propiedad del modelo PedidoBebida
+
+            // Guardar la mesa actualizada
+            await mesaExistente.save();
+
+            // Emitir un evento con el nuevo pedido de bebida para los clientes conectados
+            io.emit('nuevoPedidoBebida', nuevoPedidoBebida);
+
+            res.status(201).json({
+                message: 'Pedido de bebida creado con éxito',
+                pedidoId: nuevoPedidoBebida._id,
+                pedido: nuevoPedidoBebida,
+            });
+        } catch (error) {
+            console.error(error);
+            res.status(400).json({ error: error.message });
+        }
+    });
+
 
 
     // Obtener todos los pedidos de bebidas
@@ -182,39 +213,97 @@ router.post('/', async (req, res) => {
             res.status(400).json({ error: error.message });
         }
     });
-    // Backend - Ruta para actualizar la cantidad de la bebida
     router.put('/:pedidoId/actualizar-bebida/:bebidaId', async (req, res) => {
-        const { pedidoId, bebidaId } = req.params;
-        const { cantidad } = req.body;  // Recibimos la cantidad a actualizar
-
         try {
             // Buscar el pedido por su ID
-            const pedido = await PedidoBebida.findById(pedidoId);
+            const pedido = await PedidoBebida.findById(req.params.pedidoId);
+    
             if (!pedido) {
-                return res.status(404).send('Pedido no encontrado');
+                return res.status(404).json({ error: 'Pedido no encontrado' });
             }
-
-            // Encontrar la bebida dentro del pedido
-            const bebida = pedido.bebidas.find(b => b._id.toString() === bebidaId);
-            if (!bebida) {
-                return res.status(404).send('Bebida no encontrada');
+    
+            // Buscar la bebida a eliminar
+            const bebidaEliminada = pedido.bebidas.find(bebida =>
+                bebida._id.toString() === req.params.bebidaId
+            );
+    
+            if (!bebidaEliminada) {
+                return res.status(404).json({ error: 'Bebida no encontrada en este pedido' });
             }
-
-            // Si la cantidad es mayor a 1, restamos 1
-            if (bebida.cantidad > 1) {
-                bebida.cantidad -= 1;
-            } else {
-                // Si la cantidad es 1, eliminamos la bebida
-                pedido.bebidas = pedido.bebidas.filter(b => b._id.toString() !== bebidaId);
+    
+            // Registrar la eliminación en la colección BebidaEliminada
+            const bebidaEliminadaRegistrada = new BebidaEliminada({
+                mesaId: pedido.mesa,
+                bebidaId: bebidaEliminada._id,
+                pedidoId: pedido._id,
+                cantidad: bebidaEliminada.cantidad,
+                motivoEliminacion: 'Eliminado por el usuario', // O el motivo que prefieras
+            });
+    
+            await bebidaEliminadaRegistrada.save();  // Guardar la bebida eliminada en la base de datos
+    
+            // Actualizar el total del pedido
+            const totalBebidaEliminada = bebidaEliminada.precio * bebidaEliminada.cantidad;
+            pedido.total -= totalBebidaEliminada;
+    
+            // Filtrar la bebida eliminada
+            pedido.bebidas = pedido.bebidas.filter(bebida =>
+                bebida._id.toString() !== req.params.bebidaId
+            );
+    
+            // Si no quedan bebidas en el pedido, eliminar todo el pedido
+            if (pedido.bebidas.length === 0) {
+                // Eliminar el pedido completo
+                await PedidoBebida.findByIdAndDelete(pedido._id);
+    
+                // Buscar la mesa asociada al pedido de bebidas
+                const mesa = await Mesa.findOne({ 'pedidoBebidas': pedido._id });
+    
+                if (mesa) {
+                    // Eliminar la referencia al pedido de bebidas de la mesa
+                    mesa.pedidoBebidas = mesa.pedidoBebidas.filter(pedidoBebidaId =>
+                        pedidoBebidaId.toString() !== pedido._id.toString()
+                    );
+    
+                    // Actualizar el total de la mesa restando el total de la bebida eliminada
+                    mesa.total -= totalBebidaEliminada;
+    
+                    // Guardar la mesa actualizada
+                    await mesa.save();
+    
+                    // Emitir evento para notificar a los clientes sobre la eliminación de la mesa
+                    io.emit('mesaEliminada', mesa);  // Notificar en tiempo real
+                }
+    
+                // Emitir evento para notificar que el pedido ha sido eliminado
+                io.emit('pedidoEliminado', pedido);  // Notificar en tiempo real
+                return res.status(200).json({ message: 'Pedido eliminado porque no tiene bebidas' });
             }
-
-            // Guardamos el pedido actualizado
+    
+            // Guardar los cambios en el pedido si no está vacío
             await pedido.save();
-            res.status(200).json(pedido); // Respondemos con el pedido actualizado
-
-        } catch (err) {
-            console.error(err);
-            res.status(500).send('Error al actualizar el pedido');
+    
+            // Buscar la mesa asociada al pedido de bebidas
+            const mesa = await Mesa.findOne({ 'pedidoBebidas': pedido._id });
+    
+            if (mesa) {
+                // Actualizar el total de la mesa restando el total de la bebida eliminada
+                mesa.total -= totalBebidaEliminada;
+    
+                // Guardar la mesa actualizada
+                await mesa.save();
+    
+                // Emitir evento para notificar a los clientes sobre la actualización de la mesa
+                io.emit('mesaActualizada', mesa);  // Notificar en tiempo real
+            }
+    
+            // Emitir evento para actualizar el pedido en tiempo real
+            io.emit('pedidoActualizado', pedido);  // Notificar a los clientes conectados
+    
+            res.status(200).json(pedido);
+        } catch (error) {
+            console.error('Error eliminando bebida:', error);
+            res.status(400).json({ error: error.message });
         }
     });
 

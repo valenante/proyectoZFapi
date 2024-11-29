@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { param } = require('../api/auth');
 
 // Subesquema para los precios
 const precioSchema = new mongoose.Schema({
@@ -42,6 +43,17 @@ const platoSchema = new mongoose.Schema({
         type: String,
         enum: ['habilitado', 'deshabilitado'],
         default: 'habilitado'
+    },
+    estadoPreparacion: {
+        type: String,
+        enum: ['pendiente', 'listo'],
+        default: 'pendiente'
+    },
+    tipoServicio: {
+        type: String,
+        enum: ['invidivual', 'compartir'],
+        default: 'compartir',
+        required: true
     },
     tipo: {
         type: String,

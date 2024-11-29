@@ -30,9 +30,19 @@ const platoPedidoSchema = new mongoose.Schema({
         enum: ['tapa', 'racion', 'surtido'],
         required: false
     },
+    estadoPreparacion: {
+        type: String,
+        enum: ['pendiente', 'listo'],
+        default: 'pendiente'
+    },
     sabor: {
         type: Schema.Types.Mixed,  // Esto permite que el campo acepte tanto un string como un objeto
         required: false
+    },
+    tipoServicio: {
+        type: String,
+        enum: ['individual', 'compartir'],
+        required: true
     },
     ingredientesEliminados: {
         type: [String],
@@ -107,9 +117,15 @@ const bebidaPedidoSchema = new mongoose.Schema({
 
 // Esquema principal de pedido
 const pedidoSchema = new mongoose.Schema({
-    mesa: {
-        type: Number,
+    mesa: { 
+        type: mongoose.Schema.Types.ObjectId, 
+        ref: 'Mesa',  // Relacionado con el modelo 'Mesa'
         required: true
+    },
+    mesaDia: {
+        type: Number, 
+        ref: 'Mesa',  // Relacionado con el modelo 'Mesa'
+        required: false
     },
     platos: [platoPedidoSchema],  // Lista de platos en el pedido
     bebidas: [bebidaPedidoSchema], // Lista de bebidas en el pedido
@@ -125,6 +141,14 @@ const pedidoSchema = new mongoose.Schema({
     createdAt: {
         type: Date,
         default: Date.now
+    },
+    alergias: {
+        type: [String],
+        default: []
+    },
+    comensales: {
+        type: String,
+        required: false
     },
     estado: {
         type: String,

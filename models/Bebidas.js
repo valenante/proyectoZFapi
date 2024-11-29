@@ -44,7 +44,7 @@ const bebidaSchema = new Schema({
   estado: {
     type: String,
     enum: ['habilitado', 'deshabilitado'],
-    default: 'activo'
+    default: 'habilitado'
   },
   precio: {
     type: Number,
