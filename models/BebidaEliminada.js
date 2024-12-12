@@ -27,6 +27,11 @@ const bebidaEliminadaSchema = new mongoose.Schema({
     fechaEliminacion: {
         type: Date,
         default: Date.now
+    },
+    userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User', // Relación con el modelo de usuarios
+        required: true
     }
 });
 

@@ -25,6 +25,10 @@ const mesaSchema = new mongoose.Schema({
   total: {
     type: Number,
     default: 0,
+    set: function(value) {
+      // Redondea el valor a dos decimales antes de guardarlo
+      return parseFloat(value.toFixed(2));
+    }
   }
 }, { timestamps: true });
 

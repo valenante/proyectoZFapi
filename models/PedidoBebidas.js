@@ -29,6 +29,11 @@ const bebidaPedidoSchema = new Schema({
         type: Boolean,
         default: false
     },
+    estadoPreparacion: {
+        type: String,
+        enum: ['pendiente', 'listo'],
+        default: 'pendiente'
+    },
     conLimon: {
         type: Boolean,
         default: false
@@ -36,18 +41,13 @@ const bebidaPedidoSchema = new Schema({
     acompañante: {
         type: String,
     },
-    tipoDeVino: {
-        type: String,
-        enum: ['blanco', 'tinto'],
-        required: function() {
-            return this.categoria === 'vino blanco' || this.categoria === 'vino tinto';
-        }
-    },
     opcionesPersonalizadas: {
         type: Map,
         of: String,
         default: {}
-    }
+    },
+    ventas: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Venta' }], // Ahora ventas es una referencia al modelo Venta
+
 });
 
 // Esquema principal de pedido para las bebidas

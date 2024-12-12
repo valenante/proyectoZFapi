@@ -3,6 +3,8 @@ const router = express.Router();
 const Bebida = require('../models/Bebidas'); // Ajusta la ruta según tu estructura de archivos
 const multer = require('multer');
 const path = require('path');
+const Venta = require('../models/Ventas');
+const bebidaEliminada = require('../models/BebidaEliminada');
 
 // Configuración de multer
 const storage = multer.diskStorage({
@@ -148,6 +150,6 @@ router.delete('/:id', async (req, res) => {
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
-});
+}),
 
 module.exports = router;

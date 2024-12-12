@@ -3,6 +3,8 @@ const router = express.Router();
 const Plato = require('../models/Plato'); // Ajusta la ruta según tu estructura de archivos
 const multer = require('multer');
 const path = require('path');
+const Venta = require('../models/Ventas');
+const PlatoEliminado = require('../models/PlatoEliminado');
 
 // Configuración de multer
 const storage = multer.diskStorage({
@@ -31,7 +33,6 @@ const upload = multer({
 });
 
 router.post('/', upload.single('imagen'), async (req, res) => {
-    console.log(req.file)
     try {
         // Parsear los valores que llegan como cadenas JSON
         const precios = JSON.parse(req.body.precios);  // Convertir la cadena de precios a objeto
@@ -169,5 +170,7 @@ router.delete('/:id', async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 });
+
+
 
 module.exports = router;

@@ -36,7 +36,7 @@ const platoSchema = new mongoose.Schema({
     imagen: { type: String, required: true },
     categoria: { 
         type: String, 
-        enum: ['especiales', 'carne', 'ensaladas', 'tapas', 'vegetarianos','mar', 'hambuguesas', 'postres'], 
+        enum: ['especiales', 'carne', 'ensaladas', 'tapas', 'vegetarianos','mar', 'hamburguesas', 'postres'], 
         required: true
     },
     estado: {
@@ -56,17 +56,20 @@ const platoSchema = new mongoose.Schema({
         required: true
     },
     tipo: {
-        type: String,
-        enum: ['plato', 'tapa', 'racion', 'surtido'],
+        type: Array,
         required: true
     },
+    ventas: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Venta' }], // Ahora ventas es una referencia al modelo Venta
     createdAt: { type: Date, default: Date.now },
 
     // Nuevas propiedades para traducciones
     nombreEn: { type: String, default: '' },
     descripcionEn: { type: String, default: '' },
     nombreFr: { type: String, default: '' },
-    descripcionFr: { type: String, default: '' }
+    descripcionFr: { type: String, default: '' },
+    valoraciones: [{ type: mongoose.Schema.Types.ObjectId, ref: 'ValoracionPlato' }]
 });
 
-module.exports = mongoose.model('Plato', platoSchema);
+const Plato = mongoose.model('Plato', platoSchema);
+module.exports = Plato;
+

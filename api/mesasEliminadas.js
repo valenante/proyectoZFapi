@@ -3,6 +3,7 @@ const router = express.Router();
 const Mesa = require('../models/Mesa'); // Ajusta la ruta según tu estructura de archivos
 const Pedido = require('../models/Pedido'); // Ajusta la ruta según tu estructura de archivos
 const MesaEliminada = require('../models/MesaEliminada'); // Ajusta la ruta según tu estructura de archivos
+const PedidoBebidas = require('../models/PedidoBebidas'); // Ajusta la ruta según tu estructura de archivos
 
 module.exports = (io) => {
 
@@ -42,7 +43,7 @@ module.exports = (io) => {
     
             console.log("Mesa eliminada encontrada:", mesaEliminada);
     
-            // Buscar la mesa activa por número (en este caso, la mesa con el número de la mesa eliminada)
+            // Buscar la mesa activa por número
             const mesaActiva = await Mesa.findOne({ numero: mesaEliminada.numeroMesa });
     
             if (!mesaActiva) {
@@ -53,9 +54,8 @@ module.exports = (io) => {
     
             let totalAcumulado = 0; // Inicializamos el total acumulado
     
-            // Recuperar los pedidos asociados de la mesa eliminada
+            // Recuperar los pedidos regulares asociados a la mesa eliminada
             const pedidosRecuperados = await Promise.all(mesaEliminada.detallesMesa.pedidos.map(async (pedidoId) => {
-                // Recuperamos el pedido completo usando el ObjectId
                 const pedido = await Pedido.findById(pedidoId);
     
                 if (!pedido) {
@@ -68,7 +68,7 @@ module.exports = (io) => {
                 // Calcular el total acumulado
                 totalAcumulado += pedido.total;
     
-                // Actualizar el pedido: desvincular `mesaDia` y asignar `mesa`
+                // Actualizar el pedido
                 const pedidoActualizado = await Pedido.findByIdAndUpdate(
                     pedido._id,
                     {
@@ -78,28 +78,52 @@ module.exports = (io) => {
                     { new: true }
                 );
     
-                if (!pedidoActualizado) {
-                    console.error("No se pudo actualizar el pedido con ID:", pedido._id);
+                return pedidoActualizado || null;
+            }));
+    
+            // Recuperar los pedidos de bebidas asociados a la mesa eliminada
+            const bebidasRecuperadas = await Promise.all(mesaEliminada.detallesMesa.pedidoBebidas.map(async (pedidoBebidaId) => {
+                const pedidoBebida = await PedidoBebidas.findById(pedidoBebidaId);
+    
+                if (!pedidoBebida) {
+                    console.error("PedidoBebidas no encontrado con ID:", pedidoBebidaId);
                     return null;
                 }
     
-                console.log("Pedido actualizado:", pedidoActualizado);
+                console.log("PedidoBebidas recuperado:", pedidoBebida);
     
-                return pedidoActualizado;
+                // Calcular el total acumulado
+                totalAcumulado += pedidoBebida.total;
+    
+                // Actualizar el pedido de bebidas
+                const pedidoBebidaActualizado = await PedidoBebidas.findByIdAndUpdate(
+                    pedidoBebida._id,
+                    {
+                        $unset: { mesaDia: "" },
+                        $set: { mesa: mesaActiva._id },
+                    },
+                    { new: true }
+                );
+    
+                return pedidoBebidaActualizado || null;
             }));
     
-            // Filtrar los pedidos válidos (en caso de que algunos no se hayan actualizado)
+            // Filtrar los pedidos válidos
             const pedidosActualizados = pedidosRecuperados.filter(pedido => pedido !== null);
+            const bebidasActualizadas = bebidasRecuperadas.filter(bebida => bebida !== null);
     
-            // Verificación de los pedidos recuperados
             console.log("Pedidos recuperados y actualizados:", pedidosActualizados);
+            console.log("PedidosBebidas recuperados y actualizados:", bebidasActualizadas);
     
             // Actualizar los datos de la mesa activa
             mesaActiva.estado = 'abierta';
-            mesaActiva.pedidos = pedidosActualizados.map(pedido => pedido._id);
-            mesaActiva.total = totalAcumulado; // Asignar el total acumulado
+            mesaActiva.pedidos = [
+                ...pedidosActualizados.map(pedido => pedido._id),
+                ...bebidasActualizadas.map(bebida => bebida._id)
+            ];
+            mesaActiva.total = totalAcumulado;
     
-            console.log("Mesa activa después de actualizar con pedidos:", mesaActiva);
+            console.log("Mesa activa después de actualizar con pedidos y bebidas:", mesaActiva);
     
             // Guardar los cambios en la mesa activa
             await mesaActiva.save();
@@ -107,7 +131,7 @@ module.exports = (io) => {
             // Eliminar la mesa de la colección de mesas eliminadas
             await MesaEliminada.findByIdAndDelete(req.params.mesaId);
     
-            // Emitir un evento con la mesa actualizada para los clientes conectados
+            // Emitir un evento con la mesa actualizada
             io.emit('mesarecuperada', mesaActiva);
     
             res.status(200).json({

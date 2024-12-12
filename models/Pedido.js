@@ -44,6 +44,10 @@ const platoPedidoSchema = new mongoose.Schema({
         enum: ['individual', 'compartir'],
         required: true
     },
+    ingredientes: {
+        type: [String],
+        default: []
+    },
     ingredientesEliminados: {
         type: [String],
         default: []
@@ -52,6 +56,10 @@ const platoPedidoSchema = new mongoose.Schema({
         type: Map,
         of: String,
         default: {}
+    },
+    croquetas: {
+        type: Array,
+        default: []
     },
     tipo: {
         type: String,
@@ -63,7 +71,9 @@ const platoPedidoSchema = new mongoose.Schema({
     especificaciones: {
         type: [String],
         default: []
-    }
+    },
+    ventas: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Venta' }], // Ahora ventas es una referencia al modelo Venta
+        
 });
 
 // Esquema para las bebidas dentro de un pedido
@@ -157,29 +167,5 @@ const pedidoSchema = new mongoose.Schema({
     }
 });
 
-// Método para calcular el total del pedido
-pedidoSchema.methods.calcularTotal = function() {
-    this.total = this.platos.reduce((acc, plato) => {
-        let precioUnitario;
-
-        // Asignar el precio dependiendo del tipo de porción
-        if (plato.tipoPorcion === 'tapa') {
-            precioUnitario = plato.precios[0] || 0; // Precio de tapa
-        } else if (plato.tipoPorcion === 'racion') {
-            precioUnitario = plato.precios[1] || 0; // Precio de ración
-        } else if (plato.tipoPorcion === 'surtido') {
-            precioUnitario = plato.precios[2] || 0; // Precio de surtido
-        } else {
-            precioUnitario = plato.precios[0] || 0; // Precio por defecto
-        }
-
-        return acc + plato.cantidad * precioUnitario;
-    }, 0);
-
-    // Agregar el total de las bebidas al total del pedido
-    this.total += this.bebidas.reduce((acc, bebida) => {
-        return acc + bebida.cantidad * bebida.precio;
-    }, 0);
-};
-
-module.exports = mongoose.model('Pedido', pedidoSchema);
+const Pedido = mongoose.model('Pedido', pedidoSchema);
+module.exports = Pedido;

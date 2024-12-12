@@ -27,18 +27,16 @@ const bebidaSchema = new Schema({
     type: Boolean,
     default: false
   },
+  estadoPreparacion: {
+    type: String,
+    enum: ['pendiente', 'listo'],
+    default: 'pendiente'
+  },
   acompanante: {
     type: String,
     enum: ['refresco', 'agua tónica', 'soda', 'naranja', 'limón'],  // Opciones de acompañante si la categoría es "copa"
-    required: function() {
+    required: function () {
       return this.categoria === 'copa';
-    }
-  },
-  tipoDeVino: {
-    type: String,
-    enum: ['blanco', 'tinto'],  // Para los tipos de vino
-    required: function() {
-      return this.categoria === 'vino blanco' || this.categoria === 'vino tinto';
     }
   },
   estado: {
@@ -50,10 +48,25 @@ const bebidaSchema = new Schema({
     type: Number,
     required: true
   },
+  precioCopa: { // Precio para la copa
+    type: Number,
+    required: true
+  },
+  precioBotella: { // Precio para la botella
+    type: Number,
+    required: true
+  },
+  tipoPedido: {  // Nuevo campo para decidir entre copa o botella
+    type: String,
+    enum: ['copa', 'botella'],
+    required: true
+  },
   cantidad: {
     type: Number
   },
   img: { type: String, required: true },
+  ventas: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Venta' }], // Ahora ventas es una referencia al modelo Venta
+
 }, { timestamps: true });
 
 module.exports = mongoose.model('Bebida', bebidaSchema);
