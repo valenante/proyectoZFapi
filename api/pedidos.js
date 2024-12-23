@@ -146,6 +146,7 @@ module.exports = (io) => {
     // Obtener un pedido por ID
     router.get('/:id', async (req, res) => {
         try {
+            console.log(req.params.id);
             const pedido = await Pedido.findById(req.params.id);
             if (!pedido) {
                 return res.status(404).json({ error: 'Pedido no encontrado' });

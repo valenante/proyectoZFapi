@@ -7,6 +7,7 @@ const path = require('path');
 const cors = require('cors');  // Importar CORS
 const http = require('http');
 const socketIo = require('socket.io');
+const os = require('os');
 
 // Crear un servidor HTTP
 const server = http.createServer(app);
@@ -14,7 +15,7 @@ const server = http.createServer(app);
 // Configurar Socket.io en el servidor, permitiendo CORS
 const io = socketIo(server, {
     cors: {
-        origin: "http://192.168.1.132:3002",  // Permitir el origen de tu PWA
+        origin: "*",  // Permitir el origen de tu PWA
         methods: ["GET", "POST", "PUT", "DELETE"],
         allowedHeaders: ["Content-Type"],
         credentials: true
@@ -49,6 +50,7 @@ const platosEliminadosRoutes = require('./api/platosEliminados');
 const bebidasEliminadasRoutes = require('./api/bebidasEliminadas');
 const cajasDiariasRoutes = require('./api/cajaDiaria');
 const valoracionesRoutes = require('./api/valoraciones');
+const cartRoutes = require('./api/cart');
 
 // Usar rutas
 app.use('/api/auth', authRoutes);
@@ -65,6 +67,7 @@ app.use('/api/platosEliminados', platosEliminadosRoutes);
 app.use('/api/bebidasEliminadas', bebidasEliminadasRoutes);
 app.use('/api/cajaDiaria', cajasDiariasRoutes);
 app.use('/api/valoraciones', valoracionesRoutes);
+app.use('/api/cart', cartRoutes(io));
 
 // Evento para manejar nuevos pedidos y emitirlos a los clientes
 io.on('connection', (socket) => {
@@ -79,6 +82,22 @@ io.on('connection', (socket) => {
 
 // Configuración del puerto
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`Servidor escuchando en el puerto ${PORT}`);
+
+// Escucha en todas las interfaces de red disponibles
+server.listen(PORT, '0.0.0.0', () => {
+    // Obtener la IP de la máquina (la que Node.js está usando para escuchar)
+    const networkInterfaces = os.networkInterfaces();
+    let ipAddress = 'No disponible';
+
+    // Buscar la IP en la interfaz de red local
+    for (let interfaceKey in networkInterfaces) {
+        for (let iface of networkInterfaces[interfaceKey]) {
+            if (!iface.internal && iface.family === 'IPv4') {
+                ipAddress = iface.address;
+                break;
+            }
+        }
+    }
+
+    console.log(`Servidor escuchando en ${ipAddress}:${PORT}`);
 });

@@ -9,14 +9,6 @@ const MesaEliminadaSchema = new mongoose.Schema({
         type: Object,
         required: true
     },
-    pedidosAsociados: {
-        type: Array,
-        required: true
-    },
-    pedidosBebidasAsociados: {
-        type: Array,
-        required: true
-    },
     numero: {
         type: Number,
         required: true

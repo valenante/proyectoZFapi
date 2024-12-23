@@ -62,7 +62,7 @@ const platoPedidoSchema = new mongoose.Schema({
         default: []
     },
     tipo: {
-        type: String,
+        type: Array,
     },
     puntosDeCoccion: {
         type: [String],

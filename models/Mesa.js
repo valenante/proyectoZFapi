@@ -29,7 +29,11 @@ const mesaSchema = new mongoose.Schema({
       // Redondea el valor a dos decimales antes de guardarlo
       return parseFloat(value.toFixed(2));
     }
-  }
+  },
+  tokenLider: {
+    type: String,
+    default: null, // El token será nulo si no hay líder asignado
+  },
 }, { timestamps: true });
 
 const Mesa = mongoose.model('Mesa', mesaSchema);

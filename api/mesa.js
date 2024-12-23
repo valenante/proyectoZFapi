@@ -41,7 +41,7 @@ module.exports = (io) => {
             }
 
             // Si se encuentra la mesa, devolver su id y estado
-            res.json({ id: mesa._id, estado: mesa.estado });
+            res.json({ id: mesa._id, estado: mesa.estado, tokenLider :mesa.tokenLider });
 
             console.log(`Mesa encontrada: ID=${mesa._id}, Estado=${mesa.estado}`);
         } catch (error) {
@@ -87,6 +87,34 @@ module.exports = (io) => {
         }
     });
 
+    router.put('/token/:id', async (req, res) => {
+        try {
+            const { tokenLider } = req.body; // Extraemos el token del cuerpo de la solicitud
+    
+            // Verificamos si se proporcionó un token
+            if (!tokenLider) {
+                return res.status(400).json({ error: 'El tokenLider es requerido' });
+            }
+    
+            // Buscar y actualizar la mesa con el token del líder
+            const mesaActualizada = await Mesa.findByIdAndUpdate(
+                req.params.id, // ID de la mesa en los parámetros
+                { tokenLider }, // Actualizamos el campo tokenLider
+                { new: true } // Retornamos el documento actualizado
+            );
+    
+            if (!mesaActualizada) {
+                return res.status(404).json({ error: 'Mesa no encontrada' });
+            }
+    
+            // Emitir un evento a través de Socket.IO para notificar que la mesa ha sido actualizada
+            io.emit('mesa-token-actualizado', mesaActualizada); // Evento específico para el token
+    
+            res.status(200).json(mesaActualizada); // Devolvemos la mesa actualizada como respuesta
+        } catch (error) {
+            res.status(400).json({ error: error.message });
+        }
+    });    
 
     router.put('/cerrar/:id', async (req, res) => {
         try {
@@ -156,7 +184,7 @@ module.exports = (io) => {
             // Actualizar el array `pedidos` de la mesa a vacío, cambiar su estado a cerrada y reiniciar el total
             const mesaActualizada = await Mesa.findByIdAndUpdate(
                 mesaId,
-                { estado: 'cerrada', pedidos: [], pedidoBebidas: [], tiempoAbierta: 0, total: 0 },
+                { estado: 'cerrada', pedidos: [], pedidoBebidas: [], tiempoAbierta: 0, total: 0, tokenLider: null },
                 { new: true }
             );
 

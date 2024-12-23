@@ -9,29 +9,23 @@ module.exports = (io) => {
 
     router.get('/', async (req, res) => {
         try {
-            // Buscar todas las mesas eliminadas y ordenar por '_id' descendente para obtener la última por número de mesa
             const mesasEliminadas = await MesaEliminada.aggregate([
-                { $sort: { _id: -1 } },  // Ordenamos por _id de manera descendente
-                {
-                    $group: {
-                        _id: "$numeroMesa",   // Agrupamos por numeroMesa
-                        mesa: { $first: "$$ROOT" }  // Tomamos el primer documento de cada grupo (el último por fecha)
-                    }
-                },
-                { $replaceRoot: { newRoot: "$mesa" } }  // Reemplazamos el root por el documento completo de la mesa
+                { $sort: { numeroMesa: 1, _id: -1 } }
             ]);
-
+    
             if (mesasEliminadas.length === 0) {
                 return res.status(404).json({ mensaje: 'No hay mesas eliminadas' });
             }
-
-            // Retornar las últimas mesas eliminadas por número
+    
+            // Mantén todas las mesas en un array plano (sin agrupación manual)
             res.status(200).json({ mesas: mesasEliminadas });
         } catch (error) {
-            console.log(error);
+            console.error(error);
             res.status(500).json({ error: 'Error al recuperar las mesas eliminadas' });
         }
     });
+    
+    
     router.post('/recuperar/:mesaId', async (req, res) => {
         try {
             // Buscar la mesa eliminada usando el _id de la mesa
@@ -143,6 +137,33 @@ module.exports = (io) => {
             res.status(400).json({ error: error.message });
         }
     });
+    router.get('/recuperar', async (req, res) => {
+        try {
+            // Buscar todas las mesas eliminadas y mantener solo la última por número de mesa
+            const mesasEliminadas = await MesaEliminada.aggregate([
+                { $sort: { numeroMesa: 1, _id: -1 } }, // Ordenar por numeroMesa y luego por _id descendente
+                {
+                    $group: {
+                        _id: "$numeroMesa",     // Agrupar por numeroMesa
+                        mesa: { $first: "$$ROOT" } // Tomar el primer documento de cada grupo (el último por _id)
+                    }
+                },
+                { $replaceRoot: { newRoot: "$mesa" } } // Reemplazar el root por el documento de la mesa
+            ]);
+    
+            if (mesasEliminadas.length === 0) {
+                return res.status(404).json({ mensaje: 'No hay mesas eliminadas' });
+            }
+    
+            // Retornar las últimas mesas eliminadas por número
+            res.status(200).json({ mesas: mesasEliminadas });
+        } catch (error) {
+            console.error('Error al recuperar las mesas eliminadas:', error);
+            res.status(500).json({ error: 'Error al recuperar las mesas eliminadas' });
+        }
+    });
+    
+    
     
 
     return router;
